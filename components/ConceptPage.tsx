@@ -321,7 +321,7 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                       </button>
                       <button
                         onClick={handleNextVideo}
-                        disabled={currentVideoIndex === concept.videos.length - 1}
+                        // disabled={currentVideoIndex === concept.videos.length - 1}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition-colors"
                       >
                         Next
@@ -420,14 +420,28 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                     {/* Classroom CTA at page end */}
                     <div className="mt-6 text-center">
                       <a
-                        href="https://classroom.google.com"
+                        href={allVideosWatched ? "https://classroom.google.com" : undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all"
+                        onClick={(e) => {
+                          if (!allVideosWatched) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
+                          allVideosWatched
+                            ? 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 cursor-pointer'
+                            : 'text-gray-400 bg-gray-300 cursor-not-allowed opacity-60'
+                        }`}
                       >
                         <ExternalLink className="w-5 h-5" />
                         Go to Google Classroom
                       </a>
+                      {!allVideosWatched && (
+                        <p className="mt-2 text-sm text-gray-500">
+                          Watch all videos to unlock this link
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 ) : (
