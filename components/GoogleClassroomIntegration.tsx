@@ -225,6 +225,15 @@ export default function GoogleClassroomIntegration({
             </svg>
             Sign in with Google
           </button>
+          {/* Fallback control: show Sync Progress button but route to sign-in when not authenticated */}
+          <div className="mt-3">
+            <button
+              onClick={handleSignIn}
+              className="px-5 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Sync Progress
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">

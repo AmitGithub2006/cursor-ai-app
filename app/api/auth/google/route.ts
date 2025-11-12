@@ -30,11 +30,16 @@ export async function GET(request: NextRequest) {
   const normalizedRedirectUri = redirectUri.trim();
 
   const scope = [
-    'https://www.googleapis.com/auth/classroom.courses.readonly',
-    'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
-  ].join(' ');
+    'https://www.googleapis.com/auth/classroom.courses.readonly',
+    'https://www.googleapis.com/auth/classroom.rosters.readonly',
+    'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+    'https://www.googleapis.com/auth/classroom.coursework.students.readonly'
+  ].join(' ');  
+
+  // Optional return URL (where to send the user back after login)
+  const returnUrl = request.nextUrl.searchParams.get('returnUrl') || '/';
 
   // Build OAuth URL with proper encoding
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -44,6 +49,8 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set('scope', scope);
   authUrl.searchParams.set('access_type', 'offline');
   authUrl.searchParams.set('prompt', 'consent');
+  // Pass return path via OAuth state
+  authUrl.searchParams.set('state', encodeURIComponent(returnUrl));
 
   return NextResponse.json({ 
     authUrl: authUrl.toString(),

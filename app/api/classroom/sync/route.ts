@@ -68,98 +68,88 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId');
     const conceptId = searchParams.get('conceptId');
 
-    // Fetch user's courses
-    const coursesResponse = await fetch(
-      'https://classroom.googleapis.com/v1/courses?studentId=me',
-      {
+    const fetchWithToken = async (url: string, token: string) => {
+      return fetch(url, {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
-      }
+      });
+    };
+
+    // 🟢 1️⃣ Try fetching courses as a TEACHER first
+    let coursesResponse = await fetchWithToken(
+      'https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE&teacherId=me',
+      accessToken
     );
 
-    if (!coursesResponse.ok) {
-      throw new Error('Failed to fetch courses');
+    let coursesData = await coursesResponse.json();
+    let courses = coursesData.courses || [];
+
+    // 🔵 2️⃣ If no teacher courses, try as a STUDENT
+    if (!courses.length) {
+      const studentResponse = await fetchWithToken(
+        'https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE&studentId=me',
+        accessToken
+      );
+      const studentData = await studentResponse.json();
+      courses = studentData.courses || [];
     }
 
-    const coursesData = await coursesResponse.json();
-    const courses = coursesData.courses || [];
+    // 🟡 3️⃣ Fetch assignments for all active courses
+let assignments: any[] = [];
 
-    // If courseId provided, fetch coursework for that course
-    if (courseId) {
-      const courseworkResponse = await fetch(
-        `https://classroom.googleapis.com/v1/courses/${courseId}/courseWork?courseWorkStates=ACTIVE`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+for (const course of courses) {
+  if (!course.id) continue;
+
+  const cwResponse = await fetchWithToken(
+    `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork`,
+    accessToken
+  );
+
+  if (!cwResponse.ok) continue;
+
+  const cwData = await cwResponse.json();
+  const coursework = cwData.courseWork || [];
+
+  for (const cw of coursework) {
+    try {
+      const submissionsResponse = await fetchWithToken(
+        `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions?userId=me`,
+        accessToken
       );
 
-      if (!courseworkResponse.ok) {
-        throw new Error('Failed to fetch coursework');
-      }
+      const submissionsData = await submissionsResponse.json();
+      const submission = submissionsData.studentSubmissions?.[0];
 
-      const courseworkData = await courseworkResponse.json();
-      const coursework = courseworkData.courseWork || [];
-
-      // Fetch student submissions for each coursework
-      const assignmentsWithStatus = await Promise.all(
-        coursework.map(async (cw: any) => {
-          try {
-            const submissionsResponse = await fetch(
-              `https://classroom.googleapis.com/v1/courses/${courseId}/courseWork/${cw.id}/studentSubmissions?userId=me`,
-              {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                },
-              }
-            );
-
-            if (submissionsResponse.ok) {
-              const submissionsData = await submissionsResponse.json();
-              const submissions = submissionsData.studentSubmissions || [];
-              const submission = submissions[0];
-
-              return {
-                id: cw.id,
-                title: cw.title,
-                dueDate: cw.dueDate,
-                maxPoints: cw.maxPoints,
-                state: submission?.state || 'NEW',
-                assignedGrade: submission?.assignedGrade,
-                draftGrade: submission?.draftGrade,
-                courseId: courseId,
-              };
-            }
-          } catch (error) {
-            console.error(`Error fetching submission for ${cw.id}:`, error);
-          }
-
-          return {
-            id: cw.id,
-            title: cw.title,
-            dueDate: cw.dueDate,
-            maxPoints: cw.maxPoints,
-            state: 'NEW',
-            courseId: courseId,
-          };
-        })
-      );
-
-      return NextResponse.json({
-        success: true,
-        courses,
-        assignments: assignmentsWithStatus,
-        conceptId,
+      assignments.push({
+        id: cw.id,
+        title: cw.title,
+        dueDate: cw.dueDate,
+        maxPoints: cw.maxPoints,
+        state: submission?.state || 'NEW',
+        assignedGrade: submission?.assignedGrade,
+        draftGrade: submission?.draftGrade,
+        courseId: course.id,
+      });
+    } catch {
+      assignments.push({
+        id: cw.id,
+        title: cw.title,
+        dueDate: cw.dueDate,
+        maxPoints: cw.maxPoints,
+        state: 'NEW',
+        courseId: course.id,
       });
     }
+  }
+}
 
-    // Return all courses without specific coursework
     return NextResponse.json({
       success: true,
       courses,
-      assignments: [],
+      assignments,
+      conceptId,
     });
   } catch (error: any) {
     console.error('Sync error:', error);
@@ -169,4 +159,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

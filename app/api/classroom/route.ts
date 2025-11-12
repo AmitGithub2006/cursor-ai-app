@@ -1,28 +1,62 @@
+import { google } from 'googleapis';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Google Classroom API integration endpoints
-// Note: These are placeholder implementations. In production, you would:
-// 1. Set up Google OAuth 2.0 credentials
-// 2. Implement proper authentication flow
-// 3. Store tokens securely
-// 4. Handle API calls with proper error handling
-
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const action = searchParams.get('action');
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const accessToken = searchParams.get('accessToken');
+    const courseId = searchParams.get('courseId');
 
-  if (action === 'auth') {
-    // Return Google OAuth URL
-    const clientId = process.env.GOOGLE_CLIENT_ID || '';
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/classroom/callback';
-    const scope = 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/classroom.coursework.me';
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Missing access token' }, { status: 400 });
+    }
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
 
-    return NextResponse.json({ authUrl });
+    const classroom = google.classroom({ version: 'v1', auth });
+
+    // 1️⃣ Fetch active courses
+    const courseRes = await classroom.courses.list({
+      courseStates: ['ACTIVE'],
+      teacherId: 'me', // Works for teacher accounts
+    });
+
+    let courses = courseRes.data.courses || [];
+
+    // 2️⃣ If no courses found, try student perspective
+    if (courses.length === 0) {
+      const studentRes = await classroom.courses.list({
+        studentId: 'me',
+        courseStates: ['ACTIVE'],
+      });
+      courses = studentRes.data.courses || [];
+    }
+
+    // 3️⃣ Fetch assignments from each course
+    let assignments: any[] = [];
+
+    for (const course of courses) {
+      if (!course.id) continue; // skip if no id
+      const workRes = await classroom.courses.courseWork.list({
+        courseId: course.id as string,
+      });
+      if (workRes.data && workRes.data.courseWork) {
+        assignments = assignments.concat(workRes.data.courseWork);
+      }
+    }
+    return NextResponse.json({
+      success: true,
+      courses,
+      assignments,
+    });
+  } catch (error: any) {
+    console.error('Classroom Sync Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch classroom data' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 }
 
 export async function POST(request: NextRequest) {
@@ -30,56 +64,26 @@ export async function POST(request: NextRequest) {
   const { action, accessToken, courseId, assignmentId } = body;
 
   if (action === 'sync-progress') {
-    // Sync student progress to Google Classroom
-    // This would update the assignment submission status
     try {
-      // Placeholder for actual Google Classroom API call
-      // const response = await fetch(
-      //   `https://classroom.googleapis.com/v1/courses/${courseId}/courseWork/${assignmentId}/studentSubmissions`,
-      //   {
-      //     method: 'PATCH',
-      //     headers: {
-      //       Authorization: `Bearer ${accessToken}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //     body: JSON.stringify({
-      //       state: 'TURNED_IN',
-      //       // Add progress data here
-      //     }),
-      //   }
-      // );
+      const auth = new google.auth.OAuth2();
+      auth.setCredentials({ access_token: accessToken });
+      const classroom = google.classroom({ version: 'v1', auth });
+
+      await classroom.courses.courseWork.studentSubmissions.patch({
+        courseId,
+        courseWorkId: assignmentId,
+        id: 'me',
+        requestBody: { state: 'TURNED_IN' },
+      });
 
       return NextResponse.json({
         success: true,
         message: 'Progress synced to Google Classroom',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Sync error:', error);
       return NextResponse.json(
-        { error: 'Failed to sync progress' },
-        { status: 500 }
-      );
-    }
-  }
-
-  if (action === 'get-assignments') {
-    // Fetch assignments from Google Classroom
-    try {
-      // Placeholder for actual Google Classroom API call
-      // const response = await fetch(
-      //   `https://classroom.googleapis.com/v1/courses/${courseId}/courseWork`,
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${accessToken}`,
-      //     },
-      //   }
-      // );
-
-      return NextResponse.json({
-        assignments: [],
-      });
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch assignments' },
+        { error: error.message || 'Failed to sync progress' },
         { status: 500 }
       );
     }
@@ -87,4 +91,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 }
-
