@@ -1,8 +1,24 @@
+export interface SubTopic {
+  id: string;
+  title: string;
+  description?: string;
+  strapiId?: number; // Numeric ID from Strapi for fetching videos
+}
+
+export interface Topic {
+  id: string;
+  title: string;
+  description?: string;
+  subtopics: SubTopic[];
+  strapiId?: number; // Numeric ID from Strapi
+}
+
 export interface Concept {
   id: string;
   title: string;
   description: string;
   region: string;
+  topics: Topic[]; // Changed from subTopics to topics
   videos: Video[];
   quiz: Quiz;
   unlocked: boolean;

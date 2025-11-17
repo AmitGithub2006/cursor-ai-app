@@ -8,6 +8,8 @@ const PlayerDyn = dynamic(() => import('react-player').then(m => m.default), { s
 const ReactPlayer = PlayerDyn as unknown as React.FC<any>;
 import { useStore } from '@/lib/store';
 import { sampleConcepts, sampleRegions } from '@/lib/data';
+import { fetchVideosForSubtopic } from '@/lib/loadCmsData';
+import { Video } from '@/types';
 import {
   CheckCircle2,
   Play,
@@ -16,6 +18,8 @@ import {
   Award,
   Lock,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import QuizComponent from './QuizComponent';
 import GoogleClassroomIntegration from './GoogleClassroomIntegration';
@@ -35,8 +39,12 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
     initializeData,
   } = useStore();
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [expandedSubTopics, setExpandedSubTopics] = useState<Set<string>>(new Set());
+  const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
+  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+  const [selectedItemVideos, setSelectedItemVideos] = useState<string[]>([]);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState<number>(0);
 
   // Initialize store data if user landed directly on this page (no prior visit to home)
   useEffect(() => {
@@ -98,34 +106,11 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
   }, [regionConcepts, selectedConcept, isConceptUnlocked]);
 
   const handleVideoEnd = () => {
-    if (concept) {
-      const currentVideo = concept.videos[currentVideoIndex];
-      markVideoWatched(concept.id, currentVideo.id);
-    }
+    // Video completion tracking will be handled when Strapi is integrated
+    // For now, this is a placeholder
   };
 
-  const handleNextVideo = () => {
-    if (!concept) return;
-    const currentVideo = concept.videos[currentVideoIndex];
-    // Mark current video as watched when moving forward to keep the flow unblocked
-    markVideoWatched(concept.id, currentVideo.id);
-
-    if (currentVideoIndex < concept.videos.length - 1) {
-      setCurrentVideoIndex(currentVideoIndex + 1);
-    }
-  };
-
-  const handlePreviousVideo = () => {
-    if (currentVideoIndex > 0) {
-      setCurrentVideoIndex(currentVideoIndex - 1);
-    }
-  };
-
-  const allVideosWatched =
-    concept &&
-    concept.videos.every((video) =>
-      conceptProgress?.videosWatched.includes(video.id)
-    );
+  // Video watching logic will be handled per item when Strapi is integrated
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
@@ -206,63 +191,147 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Concepts Sidebar */}
+          {/* Concepts & Sub-topics Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4">
-              <h2 className="text-2xl font-bold text-green-800 mb-4">Concepts</h2>
-              <div className="space-y-3">
-                {regionConcepts.map((c, index) => {
-                  const isUnlocked = isConceptUnlocked(c.id);
-                  const cProgress = getConceptProgress(c.id);
-                  const completed = cProgress?.quizCompleted || false;
+            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4 space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-green-800 mb-4">Concepts</h2>
+                <div className="space-y-3">
+                  {regionConcepts.map((c, index) => {
+                    const isUnlocked = isConceptUnlocked(c.id);
+                    const cProgress = getConceptProgress(c.id);
+                    const completed = cProgress?.quizCompleted || false;
+                    const isSelected = selectedConcept === c.id;
 
-                  return (
-                    <motion.button
-                      key={c.id}
-                      onClick={() => {
-                        if (isUnlocked) {
-                          setSelectedConcept(c.id);
-                          setCurrentVideoIndex(0);
-                          setShowQuiz(false);
-                        }
-                      }}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                        selectedConcept === c.id
-                          ? 'border-green-500 bg-green-50'
-                          : isUnlocked
-                          ? 'border-green-200 bg-white hover:border-green-400'
-                          : 'border-gray-300 bg-gray-100'
-                      }`}
-                      whileHover={isUnlocked ? { scale: 1.02 } : {}}
-                      whileTap={isUnlocked ? { scale: 0.98 } : {}}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {isUnlocked ? (
-                            <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
-                              {index + 1}
+                    return (
+                      <div key={c.id}>
+                        <motion.button
+                          onClick={() => {
+                            if (isUnlocked) {
+                              setSelectedConcept(c.id);
+                              setShowQuiz(false);
+                              setSelectedVideoUrl(null);
+                              setSelectedItemName(null);
+                              setSelectedItemVideos([]);
+                              setSelectedVideoIndex(0);
+                            }
+                          }}
+                          className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                            isSelected
+                              ? 'border-green-500 bg-green-50'
+                              : isUnlocked
+                              ? 'border-green-200 bg-white hover:border-green-400'
+                              : 'border-gray-300 bg-gray-100'
+                          }`}
+                          whileHover={isUnlocked ? { scale: 1.02 } : {}}
+                          whileTap={isUnlocked ? { scale: 0.98 } : {}}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {isUnlocked ? (
+                                <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+                                  {index + 1}
+                                </div>
+                              ) : (
+                                <Lock className="w-8 h-8 text-gray-400" />
+                              )}
+                              <div>
+                                <div className="font-semibold text-gray-800">{c.title}</div>
+                                <div className="text-sm text-gray-600">{c.description}</div>
+                              </div>
                             </div>
-                          ) : (
-                            <Lock className="w-8 h-8 text-gray-400" />
-                          )}
-                          <div>
-                            <div className="font-semibold text-gray-800">{c.title}</div>
-                            <div className="text-sm text-gray-600">{c.description}</div>
+                            {completed && (
+                              <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
+                            )}
                           </div>
-                        </div>
-                        {completed && (
-                          <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
+                          {isUnlocked && cProgress && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              Quiz: {completed ? '✓' : '○'}
+                            </div>
+                          )}
+                        </motion.button>
+
+                        {/* Topics and Subtopics for selected concept */}
+                        {isSelected && isUnlocked && c.topics && c.topics.length > 0 && (
+                          <div className="mt-4 ml-4 space-y-2">
+                            <h3 className="text-lg font-semibold text-green-800 mb-2">
+                              {c.title} - Topics
+                            </h3>
+                            {c.topics.map((topic: any) => {
+                              const topicId = `topic-${topic.id}`;
+                              const isTopicExpanded = expandedSubTopics.has(topicId);
+                              return (
+                                <div key={topicId} className="border-l-2 border-green-200 pl-3 space-y-1">
+                                  <button
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedSubTopics);
+                                      if (isTopicExpanded) {
+                                        newExpanded.delete(topicId);
+                                      } else {
+                                        newExpanded.add(topicId);
+                                      }
+                                      setExpandedSubTopics(newExpanded);
+                                    }}
+                                    className="w-full text-left py-2 flex items-center justify-between hover:text-green-700 transition-colors"
+                                  >
+                                    <span className="font-medium text-green-800 text-sm">
+                                      {topic.title}
+                                    </span>
+                                    {isTopicExpanded ? (
+                                      <ChevronUp className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4 text-green-600" />
+                                    )}
+                                  </button>
+                                  {/* Subtopics under this topic */}
+                                  {isTopicExpanded && topic.subtopics && topic.subtopics.length > 0 && (
+                                    <div className="ml-2 mt-1 space-y-1">
+                                      {topic.subtopics.map((subtopic: any) => {
+                                        const isSubtopicSelected = selectedItemName === subtopic.id;
+                                        return (
+                                          <button
+                                            key={subtopic.id}
+                                            onClick={async () => {
+                                              setSelectedItemName(subtopic.id);
+                                              setSelectedVideoUrl(''); // Clear for now
+                                              setSelectedItemVideos([]);
+                                              setShowQuiz(false);
+                                              
+                                              // Fetch videos for this subtopic from Strapi
+                                              if (subtopic.strapiId && subtopic.strapiId > 0) {
+                                                try {
+                                                  const videos = await fetchVideosForSubtopic(subtopic.strapiId);
+                                                  if (videos.length > 0) {
+                                                    setSelectedVideoUrl(videos[0].url);
+                                                    setSelectedItemVideos(videos.map((v: Video) => v.url));
+                                                    setSelectedVideoIndex(0);
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Error fetching videos:', error);
+                                                }
+                                              }
+                                            }}
+                                            className={`w-full text-left px-3 py-1.5 rounded text-sm transition-all ${
+                                              isSubtopicSelected
+                                                ? 'bg-green-100 text-green-800 font-medium border-l-2 border-green-500'
+                                                : 'text-gray-700 hover:bg-green-50 hover:text-green-700'
+                                            }`}
+                                          >
+                                            • {subtopic.title}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-                      {isUnlocked && cProgress && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          Videos: {cProgress.videosWatched.length}/{c.videos.length} | Quiz:{' '}
-                          {completed ? '✓' : '○'}
-                        </div>
-                      )}
-                    </motion.button>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -287,83 +356,62 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                     </div>
 
                     {/* Video Player */}
-                    <div className="mb-6">
-                      <div className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video relative z-50 pointer-events-auto"
-                           style={{ pointerEvents: 'auto' }}>
-                        <ReactPlayer
-                          url={concept.videos[currentVideoIndex].url}
-                          width="100%"
-                          height="100%"
-                          controls
-                          onEnded={handleVideoEnd}
-                          playing={false}
-                          className="pointer-events-auto"
-                          config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } }}
-                        />
-                      </div>
-                      <div className="mt-2">
-                        <h3 className="font-semibold text-gray-800 mb-1">
-                          {concept.videos[currentVideoIndex].title}
-                        </h3>
-                        <div className="text-sm text-gray-600">
-                          Video {currentVideoIndex + 1} of {concept.videos.length}
+                    {selectedVideoUrl ? (
+                      <div className="mb-6">
+                        <div className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video relative z-50 pointer-events-auto"
+                             style={{ pointerEvents: 'auto' }}>
+                          <ReactPlayer
+                            url={selectedVideoUrl}
+                            width="100%"
+                            height="100%"
+                            controls
+                            onEnded={handleVideoEnd}
+                            playing={false}
+                            className="pointer-events-auto"
+                            config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } }}
+                          />
+                        </div>
+                        {selectedItemVideos && selectedItemVideos.length > 1 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {selectedItemVideos.map((vid, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setSelectedVideoIndex(idx);
+                                  setSelectedVideoUrl(vid);
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all cursor-pointer ${
+                                  selectedVideoIndex === idx
+                                    ? 'bg-green-600 text-white border-green-700 shadow-md'
+                                    : 'bg-white text-green-700 border-green-300 hover:bg-green-100 hover:border-green-500 shadow-sm'
+                                }`}
+                                type="button"
+                              >
+                                Video {idx + 1}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-2">
+                          <h3 className="font-semibold text-gray-800 mb-1">
+                            {selectedItemName || 'Video'}
+                          </h3>
+                          <div className="text-sm text-gray-600">
+                            Select a topic from the sidebar to watch videos
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {/* Video Navigation */}
-                    <div className="flex justify-between mb-6">
-                      <button
-                        onClick={handlePreviousVideo}
-                        disabled={currentVideoIndex === 0}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition-colors"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={handleNextVideo}
-                        // disabled={currentVideoIndex === concept.videos.length - 1}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-green-700 transition-colors"
-                      >
-                        Next
-                      </button>
-                    </div>
-
-                    {/* Video List */}
-                    <div className="mb-6">
-                      <h3 className="font-semibold text-gray-800 mb-3">All Videos</h3>
-                      <div className="space-y-2">
-                        {concept.videos.map((video, index) => {
-                          const watched =
-                            conceptProgress?.videosWatched.includes(video.id) || false;
-                          return (
-                            <motion.button
-                              key={video.id}
-                              onClick={() => setCurrentVideoIndex(index)}
-                              className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                                currentVideoIndex === index
-                                  ? 'border-green-500 bg-green-50'
-                                  : watched
-                                  ? 'border-green-200 bg-green-50'
-                                  : 'border-gray-200 bg-white hover:border-green-300'
-                              }`}
-                              whileHover={{ scale: 1.01 }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <Play className="w-5 h-5 text-green-600" />
-                                  <span className="font-medium text-gray-800">
-                                    {video.title}
-                                  </span>
-                                </div>
-                                {watched && (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                )}
-                              </div>
-                            </motion.button>
-                          );
-                        })}
+                    ) : (
+                      <div className="mb-6 bg-green-50 border-2 border-green-200 rounded-xl p-8 text-center">
+                        <Play className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-green-800 mb-2">
+                          Select a Topic to Watch
+                        </h3>
+                        <p className="text-green-700">
+                          Click on any topic item in the sidebar to start watching the video
+                        </p>
                       </div>
-                    </div>
+                    )}
 
                     {/* Resources */}
                     <div className="mb-6 p-4 bg-green-50 rounded-xl border-2 border-green-200">
@@ -402,8 +450,8 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                       <GoogleClassroomIntegration conceptId={concept.id} />
                     </div>
 
-                    {/* Quiz Button */}
-                    {allVideosWatched && (
+                    {/* Quiz Button - Will be enabled when videos are watched from Strapi */}
+                    {concept.quiz.questions.length > 0 && (
                       <motion.button
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -420,28 +468,14 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                     {/* Classroom CTA at page end */}
                     <div className="mt-6 text-center">
                       <a
-                        href={allVideosWatched ? "https://classroom.google.com" : undefined}
+                        href="https://classroom.google.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={(e) => {
-                          if (!allVideosWatched) {
-                            e.preventDefault();
-                          }
-                        }}
-                        className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-                          allVideosWatched
-                            ? 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 cursor-pointer'
-                            : 'text-gray-400 bg-gray-300 cursor-not-allowed opacity-60'
-                        }`}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 cursor-pointer"
                       >
                         <ExternalLink className="w-5 h-5" />
                         Go to Google Classroom
                       </a>
-                      {!allVideosWatched && (
-                        <p className="mt-2 text-sm text-gray-500">
-                          Watch all videos to unlock this link
-                        </p>
-                      )}
                     </div>
                   </motion.div>
                 ) : (

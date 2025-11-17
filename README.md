@@ -48,6 +48,8 @@ Create a `.env.local` file in the root directory:
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/classroom/callback
+NEXT_PUBLIC_STRAPI_URL=https://your-strapi-instance.com
+STRAPI_API_TOKEN=your_strapi_api_token
 ```
 
 4. Run the development server:

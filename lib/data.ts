@@ -4,206 +4,187 @@ import { Concept, Region } from '@/types';
 export const sampleConcepts: Concept[] = [
   {
     id: 'concept-1',
-    title: 'Basic Kitchen Safety',
-    description: 'Learn essential safety rules for cooking',
+    title: 'Basics in Cooking',
+    description: 'Master the fundamentals of cooking from grooming to appliances',
     region: 'region-1',
     order: 1,
     unlocked: true,
     completed: false,
-    videos: [
+    topics: [
       {
-        id: 'video-1-1',
-        title: 'Introduction to Kitchen Safety',
-        url: 'https://youtu.be/50q8wD6MXgI?si=3tx9xlJt6LSNAdyu',
-        watched: false,
-        order: 1,
+        id: 'topic-1-1',
+        title: 'Grooming',
+        description: 'Personal grooming and presentation',
+        subtopics: [
+          {
+            id: 'subtopic-1-1',
+            title: 'Personal Hygiene',
+            strapiId: 2, // Strapi ID
+          },
+          {
+            id: 'subtopic-1-2',
+            title: 'Presentation Skills',
+            strapiId: 4, // Strapi ID
+          },
+          {
+            id: 'subtopic-1-3',
+            title: 'Plating and Packing',
+            strapiId: 6, // Strapi ID
+          },
+        ],
       },
       {
-        id: 'video-1-2',
-        title: 'Handling Knives Safely',
-        url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw',
-        watched: false,
-        order: 2,
+        id: 'topic-1-2',
+        title: 'Standard Operating Procedures (SOP)',
+        description: 'Kitchen SOPs and management',
+        subtopics: [
+          {
+            id: 'subtopic-1-4',
+            title: 'Waste Management',
+            strapiId: 8, // Strapi ID
+          },
+          {
+            id: 'subtopic-1-5',
+            title: 'Inventory Management',
+            strapiId: 10, // Strapi ID
+          },
+          {
+            id: 'subtopic-1-6',
+            title: 'Storage Practices',
+            strapiId: 12, // Strapi ID
+          },
+        ],
       },
       {
-        id: 'video-1-3',
-        title: 'Fire Safety in the Kitchen',
-        url: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
-        watched: false,
-        order: 3,
+        id: 'topic-1-3',
+        title: 'Tools & Techniques',
+        description: 'Knife skills and measurement techniques',
+        subtopics: [
+          {
+            id: 'subtopic-1-7',
+            title: 'Knife Skills: Julienne',
+            strapiId: 14, // Strapi ID (Knife Skills)
+          },
+          {
+            id: 'subtopic-1-8',
+            title: 'Knife Skills: Dice Cut',
+            strapiId: 14, // maps to Strapi "Knife Skills" (id:14)
+          },
+          {
+            id: 'subtopic-1-9',
+            title: 'Knife Skills: Chopping',
+            strapiId: 14, // maps to Strapi "Knife Skills" (id:14)
+          },
+          {
+            id: 'subtopic-1-10',
+            title: 'Knife Skills: Slicing',
+            strapiId: 14, // maps to Strapi "Knife Skills" (id:14)
+          },
+          {
+            id: 'subtopic-1-11',
+            title: 'Measurement Techniques: Liquid Ingredients',
+            strapiId: 16, // maps to Strapi "Measurement Techniques" (id:16)
+          },
+          {
+            id: 'subtopic-1-12',
+            title: 'Measurement Techniques: Dry Ingredients',
+            strapiId: 16, // maps to Strapi "Measurement Techniques" (id:16)
+          },
+        ],
+      },
+      {
+        id: 'topic-1-4',
+        title: 'Cooking Methods',
+        description: 'Various cooking methods and techniques',
+        subtopics: [
+          {
+            id: 'subtopic-1-13',
+            title: 'Boiling',
+            strapiId: 18, // maps to Strapi "Boiling and Pressure Cooking" (id:18)
+          },
+          {
+            id: 'subtopic-1-14',
+            title: 'Pressure Cooking',
+            strapiId: 18, // maps to Strapi "Boiling and Pressure Cooking" (id:18)
+          },
+          {
+            id: 'subtopic-1-15',
+            title: 'Shallow Frying',
+            strapiId: 20, // maps to Strapi "Frying" (id:20)
+          },
+          {
+            id: 'subtopic-1-16',
+            title: 'Deep Frying',
+            strapiId: 20, // maps to Strapi "Frying" (id:20)
+          },
+          {
+            id: 'subtopic-1-17',
+            title: 'Steaming',
+            strapiId: 22, // Strapi ID (Steaming)
+          },
+          {
+            id: 'subtopic-1-18',
+            title: 'Blanching',
+            strapiId: 24, // Strapi ID (Blanching)
+          },
+          {
+            id: 'subtopic-1-19',
+            title: 'No-Boil Cooking',
+            strapiId: 26, // maps to Strapi "No-Boil & No-Oil Cooking" (id:26)
+          },
+          {
+            id: 'subtopic-1-20',
+            title: 'No-Oil Cooking',
+            strapiId: 26, // maps to Strapi "No-Boil & No-Oil Cooking" (id:26)
+          },
+        ],
+      },
+      {
+        id: 'topic-1-5',
+        title: 'Appliances Training',
+        description: 'Training on various kitchen appliances',
+        subtopics: [
+          {
+            id: 'subtopic-1-21',
+            title: 'Baking (Oven)',
+            strapiId: 28, // Strapi ID (Baking)
+          },
+          {
+            id: 'subtopic-1-22',
+            title: 'Slow Cooker',
+            strapiId: 30, // Strapi ID (Slow Cooker)
+          },
+          {
+            id: 'subtopic-1-23',
+            title: 'Coffee Machine',
+            strapiId: 32, // Strapi ID (Coffee Machine)
+          },
+          {
+            id: 'subtopic-1-24',
+            title: 'Toaster',
+            strapiId: 34, // Strapi ID (Toaster)
+          },
+          {
+            id: 'subtopic-1-25',
+            title: 'Mixer Grinder',
+            strapiId: 36, // Strapi ID (Mixer Grinder)
+          },
+        ],
       },
     ],
+    // Videos will be loaded from Strapi CMS
+    videos: [],
+    // Quiz will be loaded from Strapi CMS
     quiz: {
       id: 'quiz-1',
       passingScore: 70,
-      questions: [
-        {
-          id: 'q1-1',
-          question: 'What should you do before handling food?',
-          options: ['Wash hands', 'Check phone', 'Turn on TV', 'Skip preparation'],
-          correctAnswer: 0,
-          explanation: 'Always wash your hands before handling food to prevent contamination.',
-        },
-        {
-          id: 'q1-2',
-          question: 'How should you hold a knife?',
-          options: ['By the blade', 'By the handle', 'With bare hands', 'Any way'],
-          correctAnswer: 1,
-          explanation: 'Always hold a knife by its handle, never by the blade.',
-        },
-      ],
+      questions: [],
     },
     googleDocsLink: 'https://docs.google.com/document/d/example1',
     googleSitesLink: 'https://sites.google.com/view/example1',
   },
-  {
-    id: 'concept-2',
-    title: 'Indian Spices & Flavors',
-    description: 'Discover the magic of Indian spices',
-    region: 'region-1',
-    order: 2,
-    unlocked: false,
-    completed: false,
-    videos: [
-      {
-        id: 'video-2-1',
-        title: 'Introduction to Indian Spices',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 1,
-      },
-      {
-        id: 'video-2-2',
-        title: 'Common Spice Combinations',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 2,
-      },
-      {
-        id: 'video-2-3',
-        title: 'Spice Storage & Freshness',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 3,
-      },
-      {
-        id: 'video-2-4',
-        title: 'Making Basic Masala',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 4,
-      },
-    ],
-    quiz: {
-      id: 'quiz-2',
-      passingScore: 70,
-      questions: [
-        {
-          id: 'q2-1',
-          question: 'What is turmeric commonly used for?',
-          options: ['Sweetness', 'Color and flavor', 'Thickness', 'Cooling'],
-          correctAnswer: 1,
-          explanation: 'Turmeric adds both color and flavor to dishes.',
-        },
-      ],
-    },
-    googleDocsLink: 'https://docs.google.com/document/d/example2',
-    googleSitesLink: 'https://sites.google.com/view/example2',
-  },
-  {
-    id: 'concept-3',
-    title: 'Italian Pasta Basics',
-    description: 'Master the art of pasta cooking',
-    region: 'region-2',
-    order: 3,
-    unlocked: false,
-    completed: false,
-    videos: [
-      {
-        id: 'video-3-1',
-        title: 'Types of Pasta',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 1,
-      },
-      {
-        id: 'video-3-2',
-        title: 'Cooking Perfect Pasta',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 2,
-      },
-      {
-        id: 'video-3-3',
-        title: 'Basic Pasta Sauces',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 3,
-      },
-    ],
-    quiz: {
-      id: 'quiz-3',
-      passingScore: 70,
-      questions: [
-        {
-          id: 'q3-1',
-          question: 'How do you know pasta is done?',
-          options: ['It floats', 'It is al dente', 'It dissolves', 'Color changes'],
-          correctAnswer: 1,
-          explanation: 'Pasta should be al dente - tender but firm to bite.',
-        },
-      ],
-    },
-    googleDocsLink: 'https://docs.google.com/document/d/example3',
-    googleSitesLink: 'https://sites.google.com/view/example3',
-  },
-  {
-    id: 'concept-4',
-    title: 'Balanced Nutrition',
-    description: 'Understanding nutrients and healthy eating',
-    region: 'region-3',
-    order: 4,
-    unlocked: false,
-    completed: false,
-    videos: [
-      {
-        id: 'video-4-1',
-        title: 'What is Nutrition?',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 1,
-      },
-      {
-        id: 'video-4-2',
-        title: 'The Food Groups',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 2,
-      },
-      {
-        id: 'video-4-3',
-        title: 'Portion Sizes',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        watched: false,
-        order: 3,
-      },
-    ],
-    quiz: {
-      id: 'quiz-4',
-      passingScore: 70,
-      questions: [
-        {
-          id: 'q4-1',
-          question: 'Why is protein important?',
-          options: ['For energy', 'For building muscles', 'For taste', 'For color'],
-          correctAnswer: 1,
-          explanation: 'Protein is essential for building and repairing muscles.',
-        },
-      ],
-    },
-    googleDocsLink: 'https://docs.google.com/document/d/example4',
-    googleSitesLink: 'https://sites.google.com/view/example4',
-  },
+  // Nutrition and Digital concepts commented out - will add when created in Strapi
+  // Uncomment and update strapiIdMapping.ts when you create these concepts in Strapi
 ];
 
 export const sampleRegions: Region[] = [
@@ -217,25 +198,26 @@ export const sampleRegions: Region[] = [
     concepts: sampleConcepts.filter((c) => c.region === 'region-1'),
     icon: '🛡️',
   },
-  {
-    id: 'region-2',
-    name: 'flavor-forest',
-    displayName: 'Flavor Forest',
-    color: '#f59e0b',
-    position: { x: 50, y: 20 },
-    unlocked: false,
-    concepts: sampleConcepts.filter((c) => c.region === 'region-2'),
-    icon: '🌳',
-  },
-  {
-    id: 'region-3',
-    name: 'nutrition-meadow',
-    displayName: 'Nutrition Meadow',
-    color: '#3b82f6',
-    position: { x: 80, y: 60 },
-    unlocked: false,
-    concepts: sampleConcepts.filter((c) => c.region === 'region-3'),
-    icon: '🌿',
-  },
+  // region-2 and region-3 disabled until Nutrition and Digital concepts are created in Strapi
+  // {
+  //   id: 'region-2',
+  //   name: 'flavor-forest',
+  //   displayName: 'Flavor Forest',
+  //   color: '#f59e0b',
+  //   position: { x: 50, y: 20 },
+  //   unlocked: false,
+  //   concepts: sampleConcepts.filter((c) => c.region === 'region-2'),
+  //   icon: '🌳',
+  // },
+  // {
+  //   id: 'region-3',
+  //   name: 'nutrition-meadow',
+  //   displayName: 'Nutrition Meadow',
+  //   color: '#3b82f6',
+  //   position: { x: 80, y: 60 },
+  //   unlocked: false,
+  //   concepts: sampleConcepts.filter((c) => c.region === 'region-3'),
+  //   icon: '🌿',
+  // },
 ];
 

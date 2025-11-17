@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { Concept, Progress, Region } from '@/types';
+import { enrichConceptsWithCmsData } from '@/lib/loadCmsData';
 
 interface AppState {
   concepts: Concept[];
   regions: Region[];
   progress: Record<string, Progress>;
   currentRegion: string | null;
-  initializeData: (concepts: Concept[], regions: Region[]) => void;
+  initializeData: (concepts: Concept[], regions: Region[]) => Promise<void>;
   markVideoWatched: (conceptId: string, videoId: string) => void;
   completeQuiz: (conceptId: string, score: number) => void;
   unlockConcept: (conceptId: string) => void;
@@ -23,17 +24,26 @@ export const useStore = create<AppState>((set, get) => ({
   progress: {},
   currentRegion: null,
 
-  initializeData: (concepts, regions) => {
+  initializeData: async (concepts, regions) => {
     // Avoid resetting state if already initialized
     if (get().concepts.length > 0) {
       return;
     }
     // Initialize first concept as unlocked
-    const updatedConcepts = concepts.map((concept, index) => ({
+    let updatedConcepts = concepts.map((concept, index) => ({
       ...concept,
       unlocked: index === 0,
       completed: false,
     }));
+
+    // Attempt to enrich concepts with CMS data from Strapi
+    try {
+      updatedConcepts = await enrichConceptsWithCmsData(updatedConcepts);
+    } catch (error) {
+      console.error('Failed to load CMS data, using local data:', error);
+      // Continue with local data if Strapi fails
+    }
+
     set({ concepts: updatedConcepts, regions });
   },
 
