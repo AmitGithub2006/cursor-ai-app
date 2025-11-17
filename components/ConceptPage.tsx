@@ -358,18 +358,44 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                     {/* Video Player */}
                     {selectedVideoUrl ? (
                       <div className="mb-6">
-                        <div className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video relative z-50 pointer-events-auto"
-                             style={{ pointerEvents: 'auto' }}>
-                          <ReactPlayer
-                            url={selectedVideoUrl}
-                            width="100%"
-                            height="100%"
-                            controls
-                            onEnded={handleVideoEnd}
-                            playing={false}
-                            className="pointer-events-auto"
-                            config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } }}
-                          />
+                        <div className="bg-black rounded-xl shadow-lg relative" style={{ paddingBottom: '56.25%' }}>
+                          <div className="absolute inset-0 rounded-xl overflow-hidden">
+                            {/* Render YouTube iframe directly to avoid ReactPlayer control overlay issues */}
+                            {selectedVideoUrl.includes('youtube.com') || selectedVideoUrl.includes('youtu.be') ? (
+                              <iframe
+                                src={(() => {
+                                  try {
+                                    const url = new URL(selectedVideoUrl);
+                                    let id = '';
+                                    if (url.hostname.includes('youtu.be')) {
+                                      id = url.pathname.slice(1);
+                                    } else {
+                                      id = url.searchParams.get('v') || '';
+                                    }
+                                    if (!id) return selectedVideoUrl;
+                                    return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
+                                  } catch (e) {
+                                    return selectedVideoUrl;
+                                  }
+                                })()}
+                                title={selectedItemName || 'Video player'}
+                                className="w-full h-full"
+                                style={{ border: 0 }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                              />
+                            ) : (
+                              <ReactPlayer
+                                url={selectedVideoUrl}
+                                width="100%"
+                                height="100%"
+                                controls
+                                onEnded={handleVideoEnd}
+                                playing={false}
+                                config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } }}
+                              />
+                            )}
+                          </div>
                         </div>
                         {selectedItemVideos && selectedItemVideos.length > 1 && (
                           <div className="mt-3 flex flex-wrap gap-2">
