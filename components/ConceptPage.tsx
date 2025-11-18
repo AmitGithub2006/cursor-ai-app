@@ -35,8 +35,13 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
     progress,
     markVideoWatched,
     getConceptProgress,
+    getConceptCompletionPercentage,
+    getTopicProgress,
     isConceptUnlocked,
+    isTopicUnlocked,
     initializeData,
+    recordSubtopicVideoCount,
+    refreshCmsData,
   } = useStore();
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -106,8 +111,11 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
   }, [regionConcepts, selectedConcept, isConceptUnlocked]);
 
   const handleVideoEnd = () => {
-    // Video completion tracking will be handled when Strapi is integrated
-    // For now, this is a placeholder
+    // Track video as watched when it ends
+    if (concept && selectedItemName && selectedVideoIndex >= 0 && selectedItemVideos.length > 0) {
+      const videoId = `video-${selectedVideoIndex}`;
+      markVideoWatched(concept.id, selectedItemName, videoId);
+    }
   };
 
   // Video watching logic will be handled per item when Strapi is integrated
@@ -121,13 +129,62 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-green-700 hover:text-green-900 mb-4 font-semibold"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Forest
-          </button>
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-2 text-green-700 hover:text-green-900 font-semibold px-3 py-2 rounded hover:bg-green-100 transition-all"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Forest
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  console.log('[UI] Refreshing content from Strapi...');
+                  await refreshCmsData(concepts);
+
+                  // If a subtopic is currently selected, re-fetch its videos so the UI list and selected video
+                  // are synced with the freshly-loaded CMS data. This avoids mismatch where local selected index
+                  // points to a different URL after CMS updates.
+                  if (selectedItemName) {
+                    // Find the subtopic from the refreshed concepts in the store
+                    const found = concepts
+                      .flatMap((c) => c.topics || [])
+                      .flatMap((t) => t.subtopics || [])
+                      .find((s) => s.id === selectedItemName);
+
+                    if (found && found.strapiId && found.strapiId > 0) {
+                      try {
+                        const videos = await fetchVideosForSubtopic(
+                          found.strapiId,
+                          found.id,
+                          (count: number) => recordSubtopicVideoCount(found.id, count)
+                        );
+
+                        if (videos && videos.length > 0) {
+                          setSelectedItemVideos(videos.map((v: Video) => v.url));
+                          setSelectedVideoUrl(videos[0].url);
+                          setSelectedVideoIndex(0);
+                        } else {
+                          setSelectedItemVideos([]);
+                          setSelectedVideoUrl(null);
+                          setSelectedVideoIndex(0);
+                        }
+                      } catch (err) {
+                        console.error('Error re-fetching videos after refresh:', err);
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.error('Error refreshing CMS data:', err);
+                }
+              }}
+              className="flex items-center gap-2 text-green-700 hover:text-green-900 font-semibold px-3 py-2 rounded hover:bg-green-100 transition-all"
+              title="Refresh videos and quizzes from Strapi"
+            >
+              🔄 Refresh Content
+            </button>
+          </div>
           <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 border-2 border-green-300 rounded-2xl p-6 shadow-inner">
             <h1 className="text-4xl font-extrabold text-green-800 mb-2 tracking-tight">
               {region.icon} {region.displayName}
@@ -257,34 +314,66 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                             <h3 className="text-lg font-semibold text-green-800 mb-2">
                               {c.title} - Topics
                             </h3>
-                            {c.topics.map((topic: any) => {
+                            {c.topics.map((topic: any, topicIndex: number) => {
                               const topicId = `topic-${topic.id}`;
                               const isTopicExpanded = expandedSubTopics.has(topicId);
+                              const topicUnlocked = isTopicUnlocked(c.id, topicIndex);
+                              const topicProgress = getTopicProgress(c.id, topic.id);
+                              
                               return (
                                 <div key={topicId} className="border-l-2 border-green-200 pl-3 space-y-1">
                                   <button
                                     onClick={() => {
-                                      const newExpanded = new Set(expandedSubTopics);
-                                      if (isTopicExpanded) {
-                                        newExpanded.delete(topicId);
-                                      } else {
-                                        newExpanded.add(topicId);
+                                      if (topicUnlocked) {
+                                        const newExpanded = new Set(expandedSubTopics);
+                                        if (isTopicExpanded) {
+                                          newExpanded.delete(topicId);
+                                        } else {
+                                          newExpanded.add(topicId);
+                                        }
+                                        setExpandedSubTopics(newExpanded);
                                       }
-                                      setExpandedSubTopics(newExpanded);
                                     }}
-                                    className="w-full text-left py-2 flex items-center justify-between hover:text-green-700 transition-colors"
+                                    disabled={!topicUnlocked}
+                                    className={`w-full text-left py-2 flex items-center justify-between transition-colors rounded px-2 ${
+                                      topicUnlocked
+                                        ? 'hover:text-green-700 hover:bg-green-50 cursor-pointer'
+                                        : 'opacity-50 cursor-not-allowed text-gray-500'
+                                    }`}
                                   >
-                                    <span className="font-medium text-green-800 text-sm">
-                                      {topic.title}
-                                    </span>
-                                    {isTopicExpanded ? (
-                                      <ChevronUp className="w-4 h-4 text-green-600" />
+                                    <div className="flex-1">
+                                      <span className="font-medium text-green-800 text-sm block">
+                                        {topic.title}
+                                      </span>
+                                      {topicUnlocked && (
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-xs">
+                                            <div 
+                                              className="h-full bg-green-500 transition-all"
+                                              style={{ width: `${topicProgress}%` }}
+                                            />
+                                          </div>
+                                          <span className="text-xs text-gray-600">{topicProgress}%</span>
+                                        </div>
+                                      )}
+                                      {!topicUnlocked && topicIndex > 0 && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          Complete {getTopicProgress(c.id, c.topics[topicIndex - 1].id)}% of previous topic (need 70%)
+                                        </div>
+                                      )}
+                                    </div>
+                                    {topicUnlocked ? (
+                                      isTopicExpanded ? (
+                                        <ChevronUp className="w-4 h-4 text-green-600 flex-shrink-0 ml-2" />
+                                      ) : (
+                                        <ChevronDown className="w-4 h-4 text-green-600 flex-shrink-0 ml-2" />
+                                      )
                                     ) : (
-                                      <ChevronDown className="w-4 h-4 text-green-600" />
+                                      <Lock className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
                                     )}
                                   </button>
                                   {/* Subtopics under this topic */}
-                                  {isTopicExpanded && topic.subtopics && topic.subtopics.length > 0 && (
+                                  {isTopicExpanded && topicUnlocked && topic.subtopics && topic.subtopics.length > 0 && (
                                     <div className="ml-2 mt-1 space-y-1">
                                       {topic.subtopics.map((subtopic: any) => {
                                         const isSubtopicSelected = selectedItemName === subtopic.id;
@@ -300,7 +389,11 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                                               // Fetch videos for this subtopic from Strapi
                                               if (subtopic.strapiId && subtopic.strapiId > 0) {
                                                 try {
-                                                  const videos = await fetchVideosForSubtopic(subtopic.strapiId);
+                                                  const videos = await fetchVideosForSubtopic(
+                                                    subtopic.strapiId,
+                                                    subtopic.id,
+                                                    (count: number) => recordSubtopicVideoCount(subtopic.id, count)
+                                                  );
                                                   if (videos.length > 0) {
                                                     setSelectedVideoUrl(videos[0].url);
                                                     setSelectedItemVideos(videos.map((v: Video) => v.url));
@@ -353,6 +446,27 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                         {concept.title}
                       </h2>
                       <p className="text-lg text-green-700">{concept.description}</p>
+                      
+                      {/* Progress Display */}
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-green-700">Your Progress</span>
+                          <span className="text-lg font-bold text-green-600">
+                            {getConceptCompletionPercentage(concept.id)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden border border-green-300">
+                          <div 
+                            className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300"
+                            style={{ width: `${getConceptCompletionPercentage(concept.id)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {getConceptCompletionPercentage(concept.id) < 70 
+                            ? `Complete ${70 - getConceptCompletionPercentage(concept.id)}% more to unlock next topic` 
+                            : 'All topics unlocked! Ready to take the quiz.'}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Video Player */}
@@ -418,12 +532,29 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                             ))}
                           </div>
                         )}
+                        
+                        {/* Mark Video as Watched Button */}
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            onClick={() => {
+                              if (concept && selectedItemName && selectedVideoIndex >= 0) {
+                                const videoId = `video-${selectedVideoIndex}`;
+                                console.log(`[MANUAL] Marking video ${videoId} as watched`);
+                                markVideoWatched(concept.id, selectedItemName, videoId);
+                              }
+                            }}
+                            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all shadow-md"
+                          >
+                            ✓ Mark Video as Watched
+                          </button>
+                        </div>
+                        
                         <div className="mt-2">
                           <h3 className="font-semibold text-gray-800 mb-1">
                             {selectedItemName || 'Video'}
                           </h3>
                           <div className="text-sm text-gray-600">
-                            Select a topic from the sidebar to watch videos
+                            Click "Mark Video as Watched" after watching the video
                           </div>
                         </div>
                       </div>
@@ -476,19 +607,33 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                       <GoogleClassroomIntegration conceptId={concept.id} />
                     </div>
 
-                    {/* Quiz Button - Will be enabled when videos are watched from Strapi */}
+                    {/* Quiz Button - Enabled only when 70% of concept is completed */}
                     {concept.quiz.questions.length > 0 && (
-                      <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        onClick={() => setShowQuiz(true)}
-                        className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Award className="w-6 h-6" />
-                        Take Quiz
-                      </motion.button>
+                      <>
+                        {getConceptCompletionPercentage(concept.id) >= 70 ? (
+                          <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            onClick={() => setShowQuiz(true)}
+                            className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Award className="w-6 h-6" />
+                            Take Quiz
+                          </motion.button>
+                        ) : (
+                          <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            disabled
+                            className="w-full py-4 bg-gray-300 text-gray-600 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-2 cursor-not-allowed"
+                          >
+                            <Lock className="w-6 h-6" />
+                            Quiz Locked - {70 - getConceptCompletionPercentage(concept.id)}% more needed
+                          </motion.button>
+                        )}
+                      </>
                     )}
 
                     {/* Classroom CTA at page end */}

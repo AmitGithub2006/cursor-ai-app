@@ -54,7 +54,8 @@ export interface Question {
 
 export interface Progress {
   conceptId: string;
-  videosWatched: string[];
+  videosWatched: string[]; // Maps to video IDs
+  subtopicProgress: Record<string, { videosWatched: string[] }>; // Track per-subtopic video progress
   quizCompleted: boolean;
   quizScore?: number;
   completedAt?: Date;

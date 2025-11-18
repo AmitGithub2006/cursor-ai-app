@@ -6,7 +6,9 @@ import { getStrapiIdForSubtopic } from '@/lib/strapiIdMapping';
  * Fetch videos from Strapi for a given subtopic (via server-side API route)
  */
 export const fetchVideosForSubtopic = async (
-  subtopicId: number | string
+  subtopicId: number | string,
+  subtopicLocalId?: string, // Local subtopic ID to record video count
+  onVideosFetched?: (count: number) => void // Callback to record video count in store
 ): Promise<Video[]> => {
   try {
     const response = await fetch(
@@ -30,15 +32,35 @@ export const fetchVideosForSubtopic = async (
       return [];
     }
 
+    // Record the video count for this subtopic in the store
+    if (subtopicLocalId && onVideosFetched) {
+      onVideosFetched(data.data.length);
+    }
+
     // Strapi v4 response has fields directly on the object (no attributes wrapper)
-    return data.data.map((video: any, index: number) => ({
-      id: `video-${video.id}`,
-      title: video.title || `Video ${index + 1}`,
-      url: video.video_url || '',
-      duration: video.duration || undefined,
-      watched: false,
-      order: index,
-    }));
+    const mapped = data.data.map((video: any, index: number) => {
+      // Try to preserve any explicit ordering field provided by Strapi.
+      // Common names: order, position, sort_order, rank, or nested in attributes.
+      const possibleOrder =
+        video.order ?? video.position ?? video.sort_order ?? video.rank ??
+        (video.attributes && (video.attributes.order ?? video.attributes.position)) ??
+        index;
+
+      const order = typeof possibleOrder === 'string' ? parseInt(possibleOrder, 10) || index : (typeof possibleOrder === 'number' ? possibleOrder : index);
+
+      return {
+        id: `video-${video.id}`,
+        title: video.title || `Video ${index + 1}`,
+        url: video.video_url || '',
+        duration: video.duration || undefined,
+        watched: false,
+        order,
+      };
+    });
+
+    // Ensure stable ordering by the resolved order value
+    mapped.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return mapped;
   } catch (error) {
     console.error(`Error fetching videos for subtopic ${subtopicId}:`, error);
     return [];
