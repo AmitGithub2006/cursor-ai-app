@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Play,
   ArrowLeft,
-  BookOpen,
   Award,
   Lock,
   ExternalLink,
@@ -198,54 +197,7 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
             </div>
           </div>
         </motion.div>
-        {/* Featured dummy YouTube video links for this region */}
-        <div className="mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-200">
-            <h2 className="text-2xl font-bold text-green-800 mb-4">Featured Videos</h2>
-            <ul className="space-y-3 list-disc list-inside text-green-800">
-              <li>
-                <a
-                  className="text-green-700 hover:text-green-900 underline"
-                  href="https://youtu.be/50q8wD6MXgI?si=3tx9xlJt6LSNAdyu"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Kitchen Safety Basics
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-green-700 hover:text-green-900 underline"
-                  href="https://www.youtube.com/watch?v=jNQXAC9IVRw"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Intro to Cooking Knives
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-green-700 hover:text-green-900 underline"
-                  href="https://www.youtube.com/watch?v=oHg5SJYRHA0"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Handling Heat Safely
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-green-700 hover:text-green-900 underline"
-                  href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Kitchen Hygiene Essentials
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
+        {/* Featured Videos removed as per request */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Concepts & Sub-topics Sidebar */}
@@ -570,37 +522,7 @@ export default function ConceptPage({ regionId }: ConceptPageProps) {
                       </div>
                     )}
 
-                    {/* Resources */}
-                    <div className="mb-6 p-4 bg-green-50 rounded-xl border-2 border-green-200">
-                      <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
-                        <BookOpen className="w-5 h-5" />
-                        Additional Resources
-                      </h3>
-                      <div className="space-y-2">
-                        {concept.googleDocsLink && (
-                          <a
-                            href={concept.googleDocsLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-green-700 hover:text-green-900 underline"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            View Study Materials
-                          </a>
-                        )}
-                        {concept.googleSitesLink && (
-                          <a
-                            href={concept.googleSitesLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-green-700 hover:text-green-900 underline"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Visit Concept Page
-                          </a>
-                        )}
-                      </div>
-                    </div>
+                    {/* Additional Resources removed as requested */}
 
                     {/* Google Classroom Integration */}
                     <div className="mb-6">
